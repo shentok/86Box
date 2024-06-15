@@ -134,6 +134,20 @@ device_context_restore(void)
     memcpy(&device_current, &device_prev, sizeof(device_context_t));
 }
 
+static int device_find_free(const device_t *dev, int inst)
+{
+    int c;
+
+    for (c = 0; c < 256; c++) {
+        if (!inst && (devices[c] == dev))
+            return c;
+        if (devices[c] == NULL)
+            break;
+    }
+
+    return c;
+}
+
 static void *
 device_add_common(const device_t *dev, void *p, void *params, int inst)
 {
@@ -148,16 +162,13 @@ device_add_common(const device_t *dev, void *p, void *params, int inst)
     } else
         init_dev = (device_t *) dev;
 
-    for (c = 0; c < 256; c++) {
-        if (!inst && (devices[c] == dev)) {
-            device_log("DEVICE: device already exists!\n");
-            return (NULL);
-        }
-        if (devices[c] == NULL)
-            break;
-    }
+    c = device_find_free(dev, inst);
     if (c >= DEVICE_MAX) {
         fatal("DEVICE: too many devices\n");
+        return NULL;
+    }
+    if (devices[c]) {
+        device_log("DEVICE: device already exists!\n");
         return NULL;
     }
 
